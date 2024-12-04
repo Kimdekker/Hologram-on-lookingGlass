@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="/src/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;700&family=Rubik:wght@900&display=swap" rel="stylesheet">
+</head>
+<script type="text/javascript" src="https://unpkg.com/holoplay-core@0.0.7/dist/holoplaycore.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+<script>
+let client;
+let message; 
+
+function SendExampleQuilt() {
+    showUpdate("Running test...");
+    clearDeviceList();
+    client = new HoloPlayClient(
+    (msg) => {
+        message = msg;
+        let version = msg.version;
+        let drivername = "string"
+        let version_major = version.charAt(0);
+
+        let devices = [];
+        for (let i = 0; i < msg.devices.length; i++) {
+            devices.push(`Looking Glass ${toTitleCase(msg.devices[i].hardwareVersion)}`);
+        }
+
+        // check if HoloPlay Service or Looking Glass Bridge
+        if (version_major < 2) {
+          drivername = "HoloPlay Service"
+        }
+        else {
+          drivername = "Looking Glass Bridge"
+        }
+
+        console.log(msg, "message from core");
+
+        // if the message returns, but includes no devices, let the user know
+        if (msg.devices.length === 0) {
+        showError(
+            `${drivername} ${version} is running, but we're not detecting a Looking Glass Device. Please make sure you've got all the cables connected and that your device is turned on.`
+        );
+        // if the message returns and includes one device, check if Gen 1 or Gen 2.
+        } else if (msg.devices.length === 1) {
+        // if the device is detected properly, return success.
+        if (msg.devices[0].hardwareVersion !== "thirdparty") {
+            let device = msg.devices[0].hardwareVersion;
+            device = toTitleCase(device);
+            if (msg.devices[0].calibration !== "") {
+            // let the user know if they're using HoloPlay Service with a non gen 1 device to upgrade to Bridge
+            if ((version_major < 2) && (msg.devices[0].calibration.serial.charAt(4) != "2")) {
+              showUpdate(
+              `🥳 Communication successful! <br/> <div class="warning"> It looks like you're using HoloPlay Service ${version} with a newer Looking Glass, we recommend you upgrade to Looking Glass Bridge for the newest features. </div>`
+              );
+              showDisplays(msg, devices)
+              showDefault(msg);
+            }
+            // specifically check for 8.9" Looking Glass, in the future check for gen 1 15.6" and 32"
+            else if (msg.devices[0].calibration.serial.charAt(4) == "2") {
+              showUpdate(
+              `🥳 Communication successful! <br/> You're running ${drivername} ${version}.`
+              );
+              devices = [`Looking Glass 8.9"`]
+              showDisplays(msg, devices)
+              showDefault(msg);
+            }
+            // if the device isn't an 8.9" Looking Glass, celebrate! We're good! 
+          else {
+            showUpdate(
+              `🥳 Communication successful! <br/> You're running ${drivername} ${version}.`
+              );
+              showDisplays(msg, devices)
+              showDefault(msg);
+          }
+          }
+          else {
+            showError(
+              `Calibration Data for your display is missing, please contact support.`
+            );
+            showDisplays(msg,devices)
+          }
+        }
+        // if the device is showing up as a gen 1 device, tell the user to use service instead.
+        else {
+            showError(
+            `It looks like you may be using a 1st Generation Looking Glass with Looking Glass Bridge. You should use <a href="https://docs.lookingglassfactory.com/getting-started/looking-glass-bridge/troubleshooting#holoplay-service">HoloPlay Service</a> with 1st generation devices.`
+            );
+            // showDisplays(msg, devices)
+        }
+        // if the message includes more than one device, handle that.
+        } else if (msg.devices.length > 1) {
+        showDefault(msg);
+        showUpdate(
+            `${drivername} ${version} is running. <br/> Multiple Looking Glass Devices were detected, here's a list:`
+        );
+        showDisplays(msg, devices);
+        }
+    },
+    // if there's an error, bridge or service aren't running.
+    (err) => {
+        showError(
+        "Hm, looks like Looking Glass Bridge isn't running. <br/> Note that this test will not work on MacOS using Safari."
+        );
+    }
+    );
+};
+
+function showDefault(msg) {
+  let quiltUrl = "/public/j_smf_lightfield_qs5x9.png";
+  let aspect = 0.75
+  if (msg.devices[0].calibration.screenW.value == 1536) {
+    quiltUrl = "/public/j_smf_lightfield_qs5x9.png";
+    aspect = 0.75
+  }
+  else {
+    quiltUrl = "/public/j_smf_lightfield_qs5x9.png"
+    aspect = 1.77
+  }
+    let xhttp = new XMLHttpRequest();
+    xhttp.responseType = "arraybuffer";
+    xhttp.onreadystatechange = function () {
+    if (this.readyState == 4) {
+        if (this.status == 200) {
+        const quiltData = new Uint8Array(this.response);
+        const showCmd = new ShowMessage(
+            { vx: 5, vy: 9, vtotal: 45, aspect: aspect },
+            quiltData,
+            0
+        );
+        client.sendMessage(showCmd).then(() => hologramDone());
+        } else {
+        console.log("Could not load " + quiltUrl + "!");
+        }
+    }
+    };
+    xhttp.open("GET", quiltUrl, true);
+    xhttp.send();
+}
+
+// update the message with a warning
+function showError(errorMessage) {
+    document.getElementById("testStatus").style = "color: orange";
+    document.getElementById("testStatus").innerHTML = errorMessage;
+}
+
+// update the displayed message with green success text
+function showUpdate(updateMessage) {
+    document.getElementById("testStatus").style = "color: green";
+    document.getElementById("testStatus").innerHTML = updateMessage;
+}
+
+// show a list of connected displays
+function showDisplays(msg, devices) {
+
+  container = document.getElementById("main-container");
+  for (let i = 0; i < devices.length; i++) {
+    // check to see if the list already exists, if yes, remove it.
+   
+    item = document.createElement("div");
+    item.id = `device-${i}`
+    // check if calibration data is valid
+    let calibration = `✅`;
+    if (msg.devices[i].calibration === "") {
+     calibration = `⚠️️`;
+    }
+    item.className = "device-info"
+    item.innerHTML = `<strong>${devices[i]} <div class="left-text"> <br/> Serial Number: </strong> ${msg.devices[i].hwid} <br/> <strong> Calibration Data: ${calibration} <br/> Display Index: </strong> ${msg.devices[i].index} </div>`
+    container.append(item)
+  }
+}
+// clear out the device list if present
+function clearDeviceList() {
+  // use a wildcard selector to grab all divs with ids that contain the word "device"
+  let exists = document.querySelectorAll(`[id*="device"]`);
+  for (let i = 0; i < exists.length; i++) {
+    exists[i].remove();
+  }
+}
+
+// this function is called once the hologram is displayed! Show Confetti
+function hologramDone() {
+    const jsConfetti = new JSConfetti();
+    jsConfetti.addConfetti();
+}
+
+// title case the device name since bridge reports lowercase
+function toTitleCase(str) {
+    return str.replace(
+    /\w\S*/g,
+    function(txt) {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    }
+    );
+}
+</script>
+
+  <body class="flex-container">
+    <div class="center-ish">
+    <div id ="main-container" class="flex-container">
+      <button onClick="SendExampleQuilt()">Test your Looking Glass</button>
+      <div id="message-container">
+      <div id="testStatus"></div>
+      </div>
+    <div>
+    </div>
+  </body>
+</html>
