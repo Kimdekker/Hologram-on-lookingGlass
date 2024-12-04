@@ -109,14 +109,14 @@ function SendExampleQuilt() {
 };
 
 function showDefault(msg) {
-  let quiltUrl = "/public/j_smf_lightfield_qs5x9.png";
+  let quiltUrl = "/public/matrix_qs10x6a1.777.jpg";
   let aspect = 0.75
   if (msg.devices[0].calibration.screenW.value == 1536) {
-    quiltUrl = "/public/j_smf_lightfield_qs5x9.png";
+    quiltUrl = "/public/matrix_qs10x6a1.777.jpg";
     aspect = 0.75
   }
   else {
-    quiltUrl = "/public/j_smf_lightfield_qs5x9.png"
+    quiltUrl = "/public/matrix_qs10x6a1.777.jpg";
     aspect = 1.77
   }
     let xhttp = new XMLHttpRequest();
@@ -126,7 +126,7 @@ function showDefault(msg) {
         if (this.status == 200) {
         const quiltData = new Uint8Array(this.response);
         const showCmd = new ShowMessage(
-            { vx: 5, vy: 9, vtotal: 45, aspect: aspect },
+            { vx: 10, vy: 6, vtotal: 60, aspect: aspect },
             quiltData,
             0
         );
