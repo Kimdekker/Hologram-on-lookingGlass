@@ -8,7 +8,11 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
-    "parcel-bundler": "^1.6.1"
+    "@lookingglass/webxr": "^0.6.0",
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/xr": "^6.4.12",
+    "parcel-bundler": "^1.6.1",
+    "three": "^0.171.0"
   },
   "devDependencies": {
     "@babel/core": "7.2.0"
